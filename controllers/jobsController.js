@@ -2,6 +2,7 @@ const jobsModel = require("../models/jobsModel");
 
 function createJob(req, res) {
     const { audioId, status } = req.body;
+    const userId = req.userId;
 
     if (!audioId || !status) {
         return res.status(400).json({
@@ -9,7 +10,7 @@ function createJob(req, res) {
         });
     }
 
-    jobsModel.createJob(audioId, status, (err, job) => {
+    jobsModel.createJob(audioId, userId, status, (err, job) => {
         if (err) {
             return res.status(500).json({
                 error: err.message
@@ -21,7 +22,9 @@ function createJob(req, res) {
 }
 
 function getAllJobs(req, res) {
-    jobsModel.getAllJobs((err, jobs) => {
+    const userId = req.userId;
+
+    jobsModel.getJobsByUser(userId, (err, jobs) => {
         if (err) {
             return res.status(500).json({
                 error: err.message
@@ -34,8 +37,9 @@ function getAllJobs(req, res) {
 
 function getJobById(req, res) {
     const { id } = req.params;
+    const userId = req.userId;
 
-    jobsModel.getJobById(id, (err, job) => {
+    jobsModel.getJobByIdAndUser(id, userId, (err, job) => {
         if (err) {
             return res.status(500).json({
                 error: err.message
@@ -44,7 +48,7 @@ function getJobById(req, res) {
 
         if (!job) {
             return res.status(404).json({
-                error: "Job not found"
+                error: "Job not found or access denied"
             });
         }
 
@@ -55,6 +59,7 @@ function getJobById(req, res) {
 function updateJob(req, res) {
     const { id } = req.params;
     const { audioId, status } = req.body;
+    const userId = req.userId;
 
     if (!audioId || !status) {
         return res.status(400).json({
@@ -62,7 +67,7 @@ function updateJob(req, res) {
         });
     }
 
-    jobsModel.updateJob(id, audioId, status, (err, changes) => {
+    jobsModel.updateJob(id, audioId, userId, status, (err, changes) => {
         if (err) {
             return res.status(500).json({
                 error: err.message
@@ -71,7 +76,7 @@ function updateJob(req, res) {
 
         if (changes === 0) {
             return res.status(404).json({
-                error: "Job not found"
+                error: "Job not found or access denied"
             });
         }
 
@@ -83,8 +88,9 @@ function updateJob(req, res) {
 
 function deleteJob(req, res) {
     const { id } = req.params;
+    const userId = req.userId;
 
-    jobsModel.deleteJob(id, (err, changes) => {
+    jobsModel.deleteJob(id, userId, (err, changes) => {
         if (err) {
             return res.status(500).json({
                 error: err.message
@@ -93,7 +99,7 @@ function deleteJob(req, res) {
 
         if (changes === 0) {
             return res.status(404).json({
-                error: "Job not found"
+                error: "Job not found or access denied"
             });
         }
 
