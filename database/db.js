@@ -37,10 +37,12 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS jobs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       audioId INTEGER NOT NULL,
+      userId INTEGER NOT NULL, 
       status TEXT NOT NULL,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       FOREIGN KEY (audioId) REFERENCES audios(id)
+      FOREIGN KEY (userId) REFERENCES users(id)
     )
   `);
 
