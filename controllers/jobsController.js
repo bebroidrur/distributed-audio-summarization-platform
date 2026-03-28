@@ -1,21 +1,18 @@
 const jobsModel = require("../models/jobsModel");
+const rabbitmqService = require("../services/rabbitmqService");
 
 function createJob(req, res) {
-    const { audioId, status } = req.body;
+    const { audioId } = req.body;
     const userId = req.userId;
 
-    if (!audioId || !status) {
-        return res.status(400).json({
-            error: "audioId and status are required"
-        });
-    }
+    const status = "QUEUED";
 
     jobsModel.createJob(audioId, userId, status, (err, job) => {
         if (err) {
-            return res.status(500).json({
-                error: err.message
-            });
+            return res.status(500).json({ error: err.message });
         }
+
+        rabbitmqService.publishTranscriptionRequest(job);
 
         res.status(201).json(job);
     });
