@@ -8,6 +8,9 @@ const summariesRoutes = require("./routes/summariesRoutes");
 const authRoutes = require("./routes/authRoutes");
 const JWT_SECRET = "super_secret_key";
 const app = express();
+const rabbitmqService = require("./services/rabbitmqService");
+
+rabbitmqService.connectRabbitMQ();
 app.use(express.json());
 
 app.use("/users", usersRoutes);
