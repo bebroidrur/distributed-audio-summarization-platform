@@ -149,7 +149,35 @@ The system consists of:
 This demonstrates asynchronous processing using a message broker and worker architecture.
 
 ---
+# Laboratory Work 4 – Background & Async Processing (Non-HTTP Services)
 
+## Description
+In Laboratory Work 4, heavy background processing was moved to a separate Python service.
+
+Main features implemented:
+- Python background worker
+- Communication only through RabbitMQ
+- No HTTP API in background service
+- Event-driven workflow between backend and worker
+- Job lifecycle updates through events
+- Simulated heavy processing in Python
+- Backend remains stable and non-blocking
+
+## Architecture
+Node.js Backend → RabbitMQ → Python Background Worker → RabbitMQ Events → Node.js Backend
+
+## Event Types
+- progress
+- completed
+- failed
+
+## Job Lifecycle
+- CREATED
+- PROCESSING
+- DONE
+- ERROR
+
+---
 # Project Structure
 
 controllers/

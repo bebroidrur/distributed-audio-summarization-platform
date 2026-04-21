@@ -1,6 +1,7 @@
 import pika
 import json
 import time
+import math
 
 RABBITMQ_URL = "amqp://localhost"
 REQUEST_QUEUE = "transcription.request"
@@ -16,7 +17,7 @@ def connect():
     channel.queue_declare(queue=REQUEST_QUEUE, durable=True)
     channel.queue_declare(queue=EVENTS_QUEUE, durable=True)
 
-    print("🐍 Worker connected to RabbitMQ")
+    print("Worker connected to RabbitMQ")
 
     return connection, channel
 
@@ -31,16 +32,33 @@ def publish_event(channel, event_data):
             delivery_mode=2
         )
     )
-    print(f"📤 Published event: {event_data}")
+    print(f"Published event: {event_data}")
+
+
+def heavy_processing_simulation(job_id):
+    total = 0
+
+    # етап 1
+    for i in range(1, 200000):
+        total += math.sqrt(i)
+
+    # етап 2
+    for i in range(1, 150000):
+        total += math.log(i + 1)
+
+    # етап 3
+    for i in range(1, 100000):
+        total += math.sin(i)
+
+    return round(total, 2)
 
 
 def process_job(ch, method, properties, body):
     try:
         job = json.loads(body)
-
-        print(f"📥 Received job: {job}")
-
         job_id = job["id"]
+
+        print(f"Received job: {job}")
 
         publish_event(ch, {
             "jobId": job_id,
@@ -49,41 +67,42 @@ def process_job(ch, method, properties, body):
             "progress": 10
         })
 
-        print("⏳ Processing started...")
-        time.sleep(2)
+        time.sleep(1)
 
         publish_event(ch, {
             "jobId": job_id,
             "event": "progress",
             "status": "PROCESSING",
-            "progress": 50
+            "progress": 30
         })
 
-        print("⏳ Processing in progress...")
-        time.sleep(2)
+        result = heavy_processing_simulation(job_id)
 
         publish_event(ch, {
             "jobId": job_id,
             "event": "progress",
             "status": "PROCESSING",
-            "progress": 90
+            "progress": 80
         })
 
-        print("⏳ Finishing processing...")
         time.sleep(1)
 
         publish_event(ch, {
             "jobId": job_id,
             "event": "completed",
-            "status": "DONE"
+            "status": "DONE",
+            "result": {
+                "summary": f"Heavy processing completed for job {job_id}",
+                "value": result
+            }
         })
 
-        print(f"✅ Job completed: {job_id}")
+        print(f"Job completed: {job_id}, result={result}")
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     except Exception as err:
-        print(f"❌ Job failed: {err}")
+        print(f"Job failed: {err}")
 
         try:
             failed_job = json.loads(body)
@@ -109,7 +128,7 @@ def start_worker():
         on_message_callback=process_job
     )
 
-    print("🚀 Worker started. Waiting for jobs...")
+    print("Worker started. Waiting for jobs...")
 
     channel.start_consuming()
 
