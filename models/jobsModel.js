@@ -62,11 +62,24 @@ function deleteJob(id, userId, callback) {
         callback(err, this.changes);
     });
 }
+function updateJobStatus(id, status, callback) {
+    const updatedAt = new Date().toISOString();
 
+    const sql = `
+        UPDATE jobs
+        SET status = ?, updatedAt = ?
+        WHERE id = ?
+    `;
+
+    db.run(sql, [status, updatedAt, id], function (err) {
+        callback(err, this.changes);
+    });
+}
 module.exports = {
     createJob,
     getJobsByUser,
     getJobByIdAndUser,
     updateJob,
-    deleteJob
+    deleteJob,
+    updateJobStatus
 };
