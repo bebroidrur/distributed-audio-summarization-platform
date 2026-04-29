@@ -1,5 +1,25 @@
 const jobsModel = require("../models/jobsModel");
 const rabbitmqService = require("../services/rabbitmqService");
+const { getObject } = require("../services/s3Service");
+
+async function getJobResult(req, res) {
+    const { id } = req.params;
+
+    jobsModel.getJobByIdAndUser(id, req.userId, async (err, job) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        if (!job || !job.s3Key) {
+            return res.status(404).json({ error: "Result not ready" });
+        }
+
+        try {
+            const data = await getObject(job.s3Key);
+            res.json(JSON.parse(data));
+        } catch (e) {
+            res.status(500).json({ error: "Failed to load result" });
+        }
+    });
+}
 
 function createJob(req, res) {
     const { audioId } = req.body;

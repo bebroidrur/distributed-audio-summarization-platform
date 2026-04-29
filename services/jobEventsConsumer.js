@@ -20,7 +20,11 @@ async function startJobEventsConsumer() {
 
             console.log("Event received:", event);
 
-            const { jobId, event: eventType, status } = event;
+            const {
+                jobId,
+                event: eventType,
+                s3Key
+            } = event;
 
             if (!jobId) {
                 console.log("Event without jobId, skipping");
@@ -29,32 +33,38 @@ async function startJobEventsConsumer() {
             }
 
             if (eventType === "progress") {
-                jobsModel.updateJobStatus(jobId, "PROCESSING", (err) => {
+                jobsModel.updateJobStatus(jobId, "PROCESSING", null, (err) => {
                     if (err) {
                         console.error("Failed to update job to PROCESSING:", err.message);
                     } else {
                         console.log(`Job ${jobId} updated to PROCESSING`);
                     }
+
                     channel.ack(msg);
                 });
+
             } else if (eventType === "completed") {
-                jobsModel.updateJobStatus(jobId, "DONE", (err) => {
+                jobsModel.updateJobStatus(jobId, "DONE", s3Key, (err) => {
                     if (err) {
                         console.error("Failed to update job to DONE:", err.message);
                     } else {
-                        console.log(`Job ${jobId} updated to DONE`);
+                        console.log(`Job ${jobId} updated to DONE with s3Key: ${s3Key}`);
                     }
+
                     channel.ack(msg);
                 });
+
             } else if (eventType === "failed") {
-                jobsModel.updateJobStatus(jobId, "ERROR", (err) => {
+                jobsModel.updateJobStatus(jobId, "ERROR", null, (err) => {
                     if (err) {
-                        console.error(" Failed to update job to ERROR:", err.message);
+                        console.error("Failed to update job to ERROR:", err.message);
                     } else {
                         console.log(`Job ${jobId} updated to ERROR`);
                     }
+
                     channel.ack(msg);
                 });
+
             } else {
                 console.log("Unknown event type:", eventType);
                 channel.ack(msg);

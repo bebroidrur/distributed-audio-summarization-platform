@@ -69,7 +69,6 @@ def process_job(ch, method, properties, body):
 
         time.sleep(1)
 
-        # --- progress 2 ---
         publish_event(ch, {
             "jobId": job_id,
             "event": "progress",
@@ -98,7 +97,6 @@ def process_job(ch, method, properties, body):
 
         print(f"💾 Saved result to MinIO: {s3_key}")
 
-        # --- completed ---
         publish_event(ch, {
             "jobId": job_id,
             "event": "completed",

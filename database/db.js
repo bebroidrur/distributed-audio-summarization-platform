@@ -4,10 +4,12 @@ const path = require("path");
 const dbPath = path.join(__dirname, "database.sqlite");
 
 const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error("Database connection error:", err.message);
-    } else {
-        console.log("Connected to SQLite database");
+    if (process.env.NODE_ENV !== "test") {
+        if (err) {
+            console.error("Database connection error:", err.message);
+        } else {
+            console.log("Connected to SQLite database");
+        }
     }
 });
 
@@ -39,6 +41,7 @@ db.serialize(() => {
       audioId INTEGER NOT NULL,
       userId INTEGER NOT NULL, 
       status TEXT NOT NULL,
+      s3Key TEXT NOT NULL,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       FOREIGN KEY (audioId) REFERENCES audios(id)

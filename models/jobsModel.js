@@ -62,16 +62,16 @@ function deleteJob(id, userId, callback) {
         callback(err, this.changes);
     });
 }
-function updateJobStatus(id, status, callback) {
+function updateJobStatus(id, status, s3Key, callback) {
     const updatedAt = new Date().toISOString();
 
     const sql = `
         UPDATE jobs
-        SET status = ?, updatedAt = ?
+        SET status = ?, s3Key = COALESCE(?, s3Key), updatedAt = ?
         WHERE id = ?
     `;
 
-    db.run(sql, [status, updatedAt, id], function (err) {
+    db.run(sql, [status, s3Key, updatedAt, id], function (err) {
         callback(err, this.changes);
     });
 }
