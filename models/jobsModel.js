@@ -67,12 +67,21 @@ function updateJobStatus(id, status, s3Key, callback) {
 
     const sql = `
         UPDATE jobs
-        SET status = ?, s3Key = COALESCE(?, s3Key), updatedAt = ?
+        SET status    = ?,
+            s3Key     = COALESCE(?, s3Key),
+            updatedAt = ?
         WHERE id = ?
     `;
 
     db.run(sql, [status, s3Key, updatedAt, id], function (err) {
         callback(err, this.changes);
+    });
+}
+function getJobById(id, callback) {
+    const sql = `SELECT * FROM jobs WHERE id = ?`;
+
+    db.get(sql, [id], (err, row) => {
+        callback(err, row);
     });
 }
 module.exports = {
@@ -81,5 +90,6 @@ module.exports = {
     getJobByIdAndUser,
     updateJob,
     deleteJob,
-    updateJobStatus
+    updateJobStatus,
+    getJobById
 };
