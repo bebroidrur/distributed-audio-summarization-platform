@@ -1,6 +1,7 @@
 import { getToken } from "./api";
 
 let socket = null;
+let reconnectTimer = null;
 
 export function connectWebSocket(onMessage, onStatusChange) {
     const token = getToken();
@@ -8,6 +9,10 @@ export function connectWebSocket(onMessage, onStatusChange) {
     if (!token) {
         onStatusChange("No token");
         return null;
+    }
+
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        return socket;
     }
 
     socket = new WebSocket(`ws://localhost:3000?token=${token}`);
@@ -23,12 +28,15 @@ export function connectWebSocket(onMessage, onStatusChange) {
     };
 
     socket.onclose = () => {
-        onStatusChange("Disconnected");
-        console.log("WebSocket disconnected");
+        onStatusChange("Disconnected. Reconnecting...");
+
+        reconnectTimer = setTimeout(() => {
+            connectWebSocket(onMessage, onStatusChange);
+        }, 3000);
     };
 
     socket.onerror = () => {
-        onStatusChange("Error");
+        onStatusChange("WebSocket error");
         console.log("WebSocket error");
     };
 
@@ -36,6 +44,11 @@ export function connectWebSocket(onMessage, onStatusChange) {
 }
 
 export function closeWebSocket() {
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+
     if (socket) {
         socket.close();
         socket = null;

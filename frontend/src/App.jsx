@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createJob, getAuthToken, getJobs, setToken } from "./api";
+import { closeWebSocket, connectWebSocket } from "./websocket";
 import "./App.css";
 
 function App() {
@@ -7,6 +8,7 @@ function App() {
   const [audioId, setAudioId] = useState("1");
   const [jobs, setJobs] = useState([]);
   const [message, setMessage] = useState("");
+  const [wsStatus, setWsStatus] = useState("Disconnected");
 
   async function login() {
     const data = await getAuthToken(Number(userId));
@@ -14,7 +16,10 @@ function App() {
     if (data.token) {
       setToken(data.token);
       setMessage("Token saved");
-      loadJobs();
+
+      await loadJobs();
+
+      connectWebSocket(handleWebSocketMessage, setWsStatus);
     } else {
       setMessage(data.error || "Failed to get token");
     }
@@ -35,22 +40,50 @@ function App() {
 
     if (data.id) {
       setMessage("Job created");
-      loadJobs();
+      await loadJobs();
     } else {
       setMessage(data.error || "Failed to create job");
+    }
+  }
+
+  function handleWebSocketMessage(data) {
+    if (data.type === "connected") {
+      setMessage("WebSocket connected");
+      return;
+    }
+
+    if (data.type === "job_event") {
+      setJobs((prevJobs) =>
+          prevJobs.map((job) =>
+              job.id === data.jobId
+                  ? {
+                    ...job,
+                    status: data.status,
+                    progress: data.progress
+                  }
+                  : job
+          )
+      );
+
+      setMessage(`Job ${data.jobId}: ${data.status}`);
     }
   }
 
   useEffect(() => {
     if (localStorage.getItem("token")) {
       loadJobs();
+      connectWebSocket(handleWebSocketMessage, setWsStatus);
     }
+
+    return () => {
+      closeWebSocket();
+    };
   }, []);
 
   return (
       <div className="page">
         <h1>Distributed Audio Summarization Platform</h1>
-        <p>Frontend Lab 7 – React as a Client</p>
+        <p>Frontend Lab 8 – Real-Time Frontend (WebSocket)</p>
 
         <section className="card">
           <h2>Authentication</h2>
@@ -60,6 +93,11 @@ function App() {
               placeholder="User ID"
           />
           <button onClick={login}>Get JWT Token</button>
+        </section>
+
+        <section className="card">
+          <h2>WebSocket</h2>
+          <p>Status: {wsStatus}</p>
         </section>
 
         <section className="card">
@@ -74,7 +112,7 @@ function App() {
 
         <section className="card">
           <h2>Jobs</h2>
-          <button onClick={loadJobs}>Refresh Jobs</button>
+          <button onClick={loadJobs}>Refresh Jobs (REST fallback)</button>
 
           {jobs.length === 0 ? (
               <p>No jobs yet</p>
@@ -85,6 +123,7 @@ function App() {
                   <th>ID</th>
                   <th>Audio ID</th>
                   <th>Status</th>
+                  <th>Progress</th>
                   <th>Created</th>
                 </tr>
                 </thead>
@@ -94,6 +133,11 @@ function App() {
                       <td>{job.id}</td>
                       <td>{job.audioId}</td>
                       <td>{job.status}</td>
+                      <td>
+                        {job.progress
+                            ? `${job.progress}%`
+                            : "-"}
+                      </td>
                       <td>{job.createdAt}</td>
                     </tr>
                 ))}
