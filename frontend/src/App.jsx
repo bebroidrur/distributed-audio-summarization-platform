@@ -1,122 +1,110 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
+import { createJob, getAuthToken, getJobs, setToken } from "./api";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [userId, setUserId] = useState("1");
+  const [audioId, setAudioId] = useState("1");
+  const [jobs, setJobs] = useState([]);
+  const [message, setMessage] = useState("");
+
+  async function login() {
+    const data = await getAuthToken(Number(userId));
+
+    if (data.token) {
+      setToken(data.token);
+      setMessage("Token saved");
+      loadJobs();
+    } else {
+      setMessage(data.error || "Failed to get token");
+    }
+  }
+
+  async function loadJobs() {
+    const data = await getJobs();
+
+    if (Array.isArray(data)) {
+      setJobs(data);
+    } else {
+      setMessage(data.error || "Failed to load jobs");
+    }
+  }
+
+  async function handleCreateJob() {
+    const data = await createJob(Number(audioId));
+
+    if (data.id) {
+      setMessage("Job created");
+      loadJobs();
+    } else {
+      setMessage(data.error || "Failed to create job");
+    }
+  }
+
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      loadJobs();
+    }
+  }, []);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <div className="page">
+        <h1>Distributed Audio Summarization Platform</h1>
+        <p>Frontend Lab 7 – React as a Client</p>
 
-      <div className="ticks"></div>
+        <section className="card">
+          <h2>Authentication</h2>
+          <input
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              placeholder="User ID"
+          />
+          <button onClick={login}>Get JWT Token</button>
+        </section>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <section className="card">
+          <h2>Create Job</h2>
+          <input
+              value={audioId}
+              onChange={(e) => setAudioId(e.target.value)}
+              placeholder="Audio ID"
+          />
+          <button onClick={handleCreateJob}>Create Job</button>
+        </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <section className="card">
+          <h2>Jobs</h2>
+          <button onClick={loadJobs}>Refresh Jobs</button>
+
+          {jobs.length === 0 ? (
+              <p>No jobs yet</p>
+          ) : (
+              <table>
+                <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Audio ID</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+                </thead>
+                <tbody>
+                {jobs.map((job) => (
+                    <tr key={job.id}>
+                      <td>{job.id}</td>
+                      <td>{job.audioId}</td>
+                      <td>{job.status}</td>
+                      <td>{job.createdAt}</td>
+                    </tr>
+                ))}
+                </tbody>
+              </table>
+          )}
+        </section>
+
+        {message && <p className="message">{message}</p>}
+      </div>
+  );
 }
 
-export default App
+export default App;
