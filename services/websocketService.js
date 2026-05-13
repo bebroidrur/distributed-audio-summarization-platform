@@ -1,4 +1,7 @@
 const WebSocket = require("ws");
+const jwt = require("jsonwebtoken");
+
+const JWT_SECRET = "super_secret_key";
 
 let wss;
 const clients = new Map();
@@ -6,19 +9,37 @@ const clients = new Map();
 function initWebSocketServer(server) {
     wss = new WebSocket.Server({ server });
 
-    wss.on("connection", (ws) => {
-        console.log("WebSocket client connected");
+    wss.on("connection", (ws, req) => {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const token = url.searchParams.get("token");
 
-        ws.on("close", () => {
-            for (const [userId, sockets] of clients.entries()) {
-                clients.set(
-                    userId,
-                    sockets.filter((client) => client !== ws)
-                );
-            }
+        if (!token) {
+            ws.close(1008, "No token provided");
+            return;
+        }
 
-            console.log("WebSocket client disconnected");
-        });
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            const userId = decoded.userId;
+
+            ws.userId = userId;
+            addClient(userId, ws);
+
+            console.log(`WebSocket client connected. userId=${userId}`);
+
+            ws.send(JSON.stringify({
+                type: "connected",
+                message: "WebSocket connection established"
+            }));
+
+            ws.on("close", () => {
+                removeClient(userId, ws);
+                console.log(`WebSocket client disconnected. userId=${userId}`);
+            });
+
+        } catch (err) {
+            ws.close(1008, "Invalid token");
+        }
     });
 
     console.log("WebSocket server initialized");
@@ -28,6 +49,14 @@ function addClient(userId, ws) {
     const userClients = clients.get(userId) || [];
     userClients.push(ws);
     clients.set(userId, userClients);
+}
+
+function removeClient(userId, ws) {
+    const userClients = clients.get(userId) || [];
+    clients.set(
+        userId,
+        userClients.filter((client) => client !== ws)
+    );
 }
 
 function sendToUser(userId, event) {
@@ -42,6 +71,5 @@ function sendToUser(userId, event) {
 
 module.exports = {
     initWebSocketServer,
-    addClient,
     sendToUser
 };
